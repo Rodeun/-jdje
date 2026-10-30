@@ -1,0 +1,43 @@
+name: Build plugin
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn -B clean package
+
+      # jar 안에 plugin.yml과 클래스가 들어갔는지 로그에 출력
+      - name: Show jar contents
+        run: |
+          ls -l target/*.jar
+          unzip -l target/AnvilCostFix-1.0.0.jar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-jar
+          path: target/AnvilCostFix-1.0.0.jar
+
+      # v로 시작하는 태그(예: v1.0.0)를 올리면 Releases에 jar를 자동 첨부
+      - name: Attach jar to Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/AnvilCostFix-1.0.0.jar
